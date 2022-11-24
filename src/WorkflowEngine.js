@@ -117,7 +117,7 @@ export class WorkflowEngine {
       );
 
       let pauseCalled = false;
-      const execRet = this.executeActivity(currentNode, inputValues, currentNodeType, {
+      let execRet = this.executeActivity(currentNode, inputValues, currentNodeType, {
           context: options.context, localVars, globalVars
         },
         {
@@ -126,7 +126,7 @@ export class WorkflowEngine {
         }
       )
       if (isPromise(execRet)) {
-        await execRet
+        execRet = await execRet
       }
 
       if (pauseCalled) {
@@ -138,8 +138,9 @@ export class WorkflowEngine {
           ...options.context, localVars, globalVars
         });
       }
-      if (outputs.route && outputs.route.length == 1) {
-        const connection = outputs.route[0];
+      const selectedRoute = execRet && execRet.route ? execRet.route : 'route'
+      if (outputs[selectedRoute] && outputs[selectedRoute].length == 1) {
+        const connection = outputs[selectedRoute][0];
 
         const outputNode = nodes[connection.nodeId];
         state.currentNode = { id: outputNode.id, type: outputNode.type }

@@ -227,16 +227,27 @@ const getDefaultData = ({ node, nodeType, portTypes, context }) => {
 const nodesReducer = (
   nodes,
   action = {},
-  { nodeTypes, portTypes, cache, circularBehavior, context },
+  { nodeTypes, portTypes, cache, circularBehavior, context, connectionMode = 'flow' },
   dispatchToasts
 ) => {
   switch (action.type) {
     case "ADD_CONNECTION": {
       const { input, output } = action;
-      const inputIsNotConnected = !nodes[input.nodeId].connections.inputs[
-        input.portName
-      ];
-      if (inputIsNotConnected) {
+
+      // root     - inputs max 1, outputs unlimited
+      // decision - inputs unlimited, outputs unlimited
+      // flow     - inputs max unlimited, outputs max 1
+
+      const inputIsNotConnected = connectionMode !== 'root' || (
+                                   nodes[input.nodeId].connections.inputs[input.portName] == null ||
+                                   nodes[input.nodeId].connections.inputs[input.portName].length === 0
+      );
+
+      const outputIsNotConnected = connectionMode !== 'flow' || (
+                                   nodes[output.nodeId].connections.outputs[output.portName] == null ||
+                                   nodes[output.nodeId].connections.outputs[output.portName].length === 0
+      );
+      if (inputIsNotConnected && outputIsNotConnected) {
         const allowCircular = circularBehavior === "warn" || circularBehavior === "allow"
         const newNodes = addConnection(nodes, input, output, portTypes);
         const isCircular = checkForCircularNodes(newNodes, output.nodeId);
