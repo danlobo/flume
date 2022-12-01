@@ -46,16 +46,30 @@ export class WorkflowEngine {
   async resolveInputValues (node, nodeType, nodes, context, state) {
     let inputs = nodeType.inputs
     if (typeof inputs === 'function') {
-      const localVars = state && state.localVars && state.localVars[node.id] ? state.localVars[node.id] : {}
-      const globalVars = state && state.globalVars ? state.globalVars : {}
-      inputs = inputs(node.inputData, node.connections, { ...context, localVars, globalVars })
+      if (state && !state.localVars[node.id]) state.localVars[node.id] = {}
+
+      inputs = inputs(
+          node.inputData,
+          node.connections,
+          {
+            ...context,
+            localVars: state.localVars[node.id],
+            globalVars: state.globalVars,
+            tags: state && state.tags ? [ ...state.tags] : []
+          }
+      )
     }
+
     const obj = {}
+    const notRoutedFlowNodeRoutes = node.connections.inputs && node.connections.inputs.route
+      ? node.connections.inputs.route.filter(r => !state.previousNode || r.nodeId !== state.previousNode.id).map(r => r.nodeId)
+      : []
     for(const input of inputs) {
-      const inputConnections = node.connections.inputs[input.name] || [];
+      const inputConnections = (node.connections.inputs[input.name] || []).filter(r => !notRoutedFlowNodeRoutes.includes(r.nodeId));
       if (inputConnections.length > 0) {
+        const connection = inputConnections[0]
         obj[input.name] = await this.getValueOfConnection(
-          inputConnections[0],
+          connection,
           nodes,
           context,
           state
@@ -83,14 +97,18 @@ export class WorkflowEngine {
       state
     );
 
-    const localVars = state && state.localVars && state.localVars[outputNode.id] ? state.localVars[outputNode.id] : {}
-    const globalVars = state && state.globalVars ? state.globalVars : {}
+    if (state && !state.localVars[outputNode.id]) state.localVars[outputNode.id] = {}
 
     const outputValue = this.fireNodeFunction(
       outputNode,
       inputValues,
       outputNodeType,
-      { ...context, localVars, globalVars }
+      {
+        ...context,
+        localVars: state.localVars[outputNode.id],
+        globalVars: state.globalVars,
+        tags: state && state.tags ? [ ...state.tags] : []
+      }
     );
 
     this.resetLoops();
@@ -105,9 +123,6 @@ export class WorkflowEngine {
       let outputs = currentNode.connections.outputs;
       const currentNodeType = this.config.nodeTypes[currentNode.type];
 
-      const localVars = state && state.localVars && state.localVars[currentNode.id] ? state.localVars[currentNode.id] : {}
-      const globalVars = state && state.globalVars ? state.globalVars : {}
-
       const inputValues = await this.resolveInputValues(
         currentNode,
         currentNodeType,
@@ -116,13 +131,26 @@ export class WorkflowEngine {
         state
       );
 
+      if (state && !state.localVars[currentNode.id]) state.localVars[currentNode.id] = {}
+
       let pauseCalled = false;
-      let execRet = this.executeActivity(currentNode, inputValues, currentNodeType, {
-          context: options.context, localVars, globalVars
+      let execRet = this.executeActivity(
+        currentNode,
+        inputValues,
+        currentNodeType,
+        {
+          context: options.context,
+          localVars: state.localVars[currentNode.id],
+          globalVars: state.globalVars,
+          tags: state && state.tags ? [ ...state.tags] : [],
         },
+        Object.keys(outputs),
         {
           pause: (returnVariable) => { this.pause(state, returnVariable); pauseCalled = true; },
-          resume: (returnValue) => this.resume(returnValue, nodes, options)
+          resume: (returnValue) => this.resume(returnValue, nodes, options),
+          addTag: (tag) => state.tags.push(tag),
+          removeTag: (tag) => state.tags = state.tags.filter(t => t !== tag),
+          hasTag: (tag) => state.tags.includes(tag),
         }
       )
       if (isPromise(execRet)) {
@@ -134,8 +162,14 @@ export class WorkflowEngine {
       }
 
       if (typeof outputs === 'function') {
-        outputs = outputs(currentNode.outputData, currentNode.connections, {
-          ...options.context, localVars, globalVars
+        outputs = outputs(
+          currentNode.outputData,
+          currentNode.connections,
+          {
+          ...options.context,
+          localVars: state.localVars[currentNode.id],
+          globalVars: state.globalVars,
+          tags: state && state.tags ? [ ...state.tags] : []
         });
       }
       const selectedRoute = execRet && execRet.route ? execRet.route : 'route'
@@ -143,6 +177,7 @@ export class WorkflowEngine {
         const connection = outputs[selectedRoute][0];
 
         const outputNode = nodes[connection.nodeId];
+        state.previousNode = state.currentNode
         state.currentNode = { id: outputNode.id, type: outputNode.type }
 
         currentNode = outputNode;
@@ -158,7 +193,7 @@ export class WorkflowEngine {
       console.error('Already started')
       return
     }
-    const currentState = { key: this.key, state: 'running', localVars: {}, globalVars: {}, currentNode: null }
+    const currentState = { key: this.key, state: 'running', localVars: {}, globalVars: {}, previousNode: null, currentNode: null, tags: [] }
 
     const rootNode = options.rootNodeId
     ? nodes[options.rootNodeId]
@@ -172,7 +207,7 @@ export class WorkflowEngine {
     }
 
     currentState.currentNode = { id: rootNode.id, type: rootNode.type }
-    const state = await this.iterateNodes(currentState, rootNode, nodes, options.context)
+    const state = await this.iterateNodes(currentState, rootNode, nodes, options)
     if (!state) {
       this.storage.removeItem(this.key)
     }
@@ -210,14 +245,14 @@ export class WorkflowEngine {
 
     state.state = 'running'
 
-    const currentNode = nodes[state.currentNode.id]
+    const node = nodes[state.currentNode.id]
 
     if (!state.localVars)  state.localVars = {}
-    if (!state.localVars[currentNode.id])  state.localVars[currentNode.id] = {}
+    if (!state.localVars[node.id])  state.localVars[node.id] = {}
 
-    state.localVars[currentNode.id][state.returnVariable] = returnValue
+    state.localVars[node.id][state.returnVariable] = returnValue
 
-    const state1 = await this.iterateNodes(state, currentNode, nodes, options)
+    const state1 = await this.iterateNodes(state, node, nodes, options)
     if (!state1) {
       this.storage.removeItem(this.key)
     }
