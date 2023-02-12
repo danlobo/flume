@@ -54,7 +54,7 @@ const IoPorts = ({
   const triggerRecalculation = React.useContext(ConnectionRecalculateContext);
   const resolvedInputs = useTransputs(inputs, 'input', nodeId, inputData, connections);
   const resolvedOutputs = useTransputs(outputs, 'output', nodeId, inputData, connections);
-  
+
   return (
     <div className={styles.wrapper} data-flume-component="ports">
       {resolvedInputs.length ? (
@@ -116,11 +116,11 @@ const Input = ({
 
   const controls = localControls || defaultControls;
 
-  React.useEffect(() => {
-    if (isConnected !== prevConnected) {
-      triggerRecalculation();
-    }
-  }, [isConnected, prevConnected, triggerRecalculation]);
+  // React.useEffect(() => {
+  //   if (isConnected !== prevConnected) {
+  //     triggerRecalculation();
+  //   }
+  // }, [isConnected, prevConnected, triggerRecalculation]);
 
   return (
     <div
@@ -270,13 +270,15 @@ const Port = ({
       const {
         inputNodeId,
         inputPortName,
+        inputPortType,
         outputNodeId,
-        outputPortName
+        outputPortName,
+        outputPortType
       } = lineInToPort.current.dataset;
       nodesDispatch({
         type: "REMOVE_CONNECTION",
-        input: { nodeId: inputNodeId, portName: inputPortName },
-        output: { nodeId: outputNodeId, portName: outputPortName }
+        input: { nodeId: inputNodeId, portName: inputPortName, portType: inputPortType },
+        output: { nodeId: outputNodeId, portName: outputPortName, portType: outputPortType }
       });
       if (droppedOnPort) {
         const {
@@ -293,8 +295,8 @@ const Port = ({
           if (inputWillAcceptConnection) {
             nodesDispatch({
               type: "ADD_CONNECTION",
-              input: { nodeId: connectToNodeId, portName: connectToPortName },
-              output: { nodeId: outputNodeId, portName: outputPortName }
+              input: { nodeId: connectToNodeId, portName: connectToPortName, portType: connectToPortType },
+              output: { nodeId: outputNodeId, portName: outputPortName, portType: outputPortType }
             });
           }
         }
@@ -315,8 +317,8 @@ const Port = ({
           if (inputWillAcceptConnection) {
             nodesDispatch({
               type: "ADD_CONNECTION",
-              output: { nodeId, portName: name },
-              input: { nodeId: inputNodeId, portName: inputPortName }
+              output: { nodeId, portName: name, portType: type },
+              input: { nodeId: inputNodeId, portName: inputPortName, portType: inputNodeType }
             });
             triggerRecalculation();
           }
@@ -408,6 +410,7 @@ const Port = ({
           <Connection
             from={dragStartCoordinates}
             to={dragStartCoordinates}
+            color={color}
             lineRef={line}
           />
         </Portal>

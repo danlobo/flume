@@ -1,7 +1,6 @@
 import './require-babel-polyfill' // for async shenanigans to work with babel
 import { LocalStorage } from './LocalStorage';
 import { LoopError } from './LoopError';
-import { ObjectStorageWrapper } from './ObjectStorageWrapper';
 
 const isPromise = (p) => typeof p == 'object' && typeof p.then == 'function'
 
@@ -12,7 +11,7 @@ export class WorkflowEngine {
     }
 
     this.key = key;
-    this.storage = new ObjectStorageWrapper(storage);
+    this.storage = storage;
     this.config = config;
     this.fireNodeFunction = fireNodeFunction;
     this.resolveInputControls = resolveInputControls;
@@ -179,6 +178,8 @@ export class WorkflowEngine {
         const outputNode = nodes[connection.nodeId];
         state.previousNode = state.currentNode
         state.currentNode = { id: outputNode.id, type: outputNode.type }
+        if (state && state.localVars && state.localVars[outputNode.id])
+          state.localVars[outputNode.id] = {}
 
         currentNode = outputNode;
       } else {
@@ -188,8 +189,47 @@ export class WorkflowEngine {
     return null
   }
 
+  async play(nodes, options = {}) {
+    const state = await this.storage.getItem(this.key)
+    const newRun = state == null
+
+    const currentState = newRun
+      ? { key: this.key, state: 'running', localVars: {}, globalVars: {}, previousNode: null, currentNode: null, tags: [] }
+      : state
+
+    const rootNode = options.rootNodeId
+    ? nodes[options.rootNodeId]
+    : await this.getRootNode(nodes);
+
+    const currentNode = newRun ? rootNode : nodes[state.currentNode.id]
+    if (!currentNode) {
+      console.error(
+        "The current node was not found. If you are starting a new flow, make sure you have exactly one node marked as the root node."
+      );
+      return {};
+    }
+
+    if (!currentState.localVars)  currentState.localVars = {}
+    if (!currentState.localVars[currentNode.id])  currentState.localVars[currentNode.id] = {}
+
+    if (currentState.state === 'paused') {
+      currentState.state = 'running'
+
+      currentState.localVars[currentNode.id][currentState.returnVariable] = options.returnValue
+    } else {
+      currentState.localVars[currentNode.id][currentState.returnVariable] = null
+    }
+
+    currentState.currentNode = { id: currentNode.id, type: currentNode.type }
+    const newState = await this.iterateNodes(currentState, currentNode, nodes, options)
+    if (!newState) {
+      await this.storage.removeItem(this.key)
+    }
+    return newState
+  };
+
   async start(nodes, options = {}) {
-    if (this.storage.getItem(this.key) != null) {
+    if ((await this.storage.getItem(this.key)) != null) {
       console.error('Already started')
       return
     }
@@ -209,7 +249,7 @@ export class WorkflowEngine {
     currentState.currentNode = { id: rootNode.id, type: rootNode.type }
     const state = await this.iterateNodes(currentState, rootNode, nodes, options)
     if (!state) {
-      this.storage.removeItem(this.key)
+      await this.storage.removeItem(this.key)
     }
     return state
   };
@@ -222,17 +262,17 @@ export class WorkflowEngine {
 
     state.state = 'paused'
     state.returnVariable = returnVariable
-    this.storage.setItem(this.key, state)
+    await this.storage.setItem(this.key, state)
 
     return true
   };
 
   async stop() {
-    this.storage.removeItem(this.key)
+    await this.storage.removeItem(this.key)
   }
 
   async resume(returnValue, nodes, options = {}) {
-    const state = this.storage.getItem(this.key)
+    const state = await this.storage.getItem(this.key)
     if (!state) {
       console.error('No state to resume')
       return null
@@ -254,7 +294,7 @@ export class WorkflowEngine {
 
     const state1 = await this.iterateNodes(state, node, nodes, options)
     if (!state1) {
-      this.storage.removeItem(this.key)
+      await this.storage.removeItem(this.key)
     }
     return state
   };

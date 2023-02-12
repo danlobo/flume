@@ -26,6 +26,9 @@ export default (comments = {}, action) => {
         [comment.id]: comment
       };
     }
+    case "SET_COMMENTS": {
+      return action.comments;
+    }
     case "REMOVE_COMMENT_NEW":
       const { isNew: toDelete, ...comment } = comments[action.id];
       return {

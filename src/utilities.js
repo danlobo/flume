@@ -1,6 +1,13 @@
 export const checkForCircularNodes = (nodes, startNodeId) => {
   let isCircular = false;
-  const walk = nodeId => {
+  const walk = (nodeId, nodeBucket) => {
+    if (nodeBucket.includes(nodeId)) {
+      isCircular = true;
+      return;
+    }
+
+    nodeBucket.push(nodeId);
+
     const outputs = Object.values(nodes[nodeId].connections.outputs);
     for (var i = 0; i < outputs.length; i++) {
       if(isCircular){
@@ -13,11 +20,11 @@ export const checkForCircularNodes = (nodes, startNodeId) => {
           isCircular = true;
           break;
         }else{
-          walk(connectedTo.nodeId)
+          walk(connectedTo.nodeId, nodeBucket)
         }
       }
     }
   }
-  walk(startNodeId)
+  walk(startNodeId, [])
   return isCircular;
 }

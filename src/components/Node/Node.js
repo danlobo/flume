@@ -100,7 +100,7 @@ const Node = ({
                 stageRect.current.height / 2
             ) + byScale(stageState.translate.y)
         };
-        cnx.setAttribute("d", calculateCurve(from, to));
+        cnx.setAttribute("d", isOutput ? calculateCurve(from, to) : calculateCurve(to, from));
       });
     });
   };

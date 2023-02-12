@@ -89,6 +89,7 @@ export const createSVG = ({
   id,
   outputNodeId,
   outputPortName,
+  outputPortType,
   inputNodeId,
   inputPortName
 }) => {
@@ -104,6 +105,7 @@ export const createSVG = ({
   path.setAttribute("data-connection-id", id);
   path.setAttribute("data-output-node-id", outputNodeId);
   path.setAttribute("data-output-port-name", outputPortName);
+  path.setAttribute("data-output-port-type", outputPortType);
   path.setAttribute("data-input-node-id", inputNodeId);
   path.setAttribute("data-input-port-name", inputPortName);
   svg.appendChild(path);
@@ -157,6 +159,7 @@ export const createConnections = (nodes, {scale, stageId}, editorId) => {
                     id,
                     outputNodeId: output.nodeId,
                     outputPortName: output.portName,
+                    outputPortType: output.portType,
                     inputNodeId: node.id,
                     inputPortName: inputName,
                     from: {

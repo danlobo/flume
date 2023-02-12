@@ -6,9 +6,11 @@ const Connection = ({
   from,
   to,
   id,
+  color,
   lineRef,
   outputNodeId,
   outputPortName,
+  outputPortType,
   inputNodeId,
   inputPortName
 }) => {
@@ -19,6 +21,7 @@ const Connection = ({
         data-connection-id={id}
         data-output-node-id={outputNodeId}
         data-output-port-name={outputPortName}
+        data-output-port-type={outputPortType}
         data-input-node-id={inputNodeId}
         data-input-port-name={inputPortName}
         data-flume-component="connection-path"

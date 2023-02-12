@@ -2,13 +2,13 @@ export class LocalStorage {
   constructor() {
     this.storage = {};
   }
-  setItem(key, value) {
+  async setItem(key, value) {
     this.storage[key] = JSON.stringify(value);
   }
-  getItem(key) {
+  async getItem(key) {
     return this.storage[key] ? JSON.parse(this.storage[key]) : null;
   }
-  removeItem(key) {
+  async removeItem(key) {
     delete this.storage[key];
   }
 }

@@ -18,7 +18,8 @@ const addConnection = (nodes, input, output, portTypes) => {
             ...(nodes[input.nodeId].connections.inputs[input.portName] || []),
             {
               nodeId: output.nodeId,
-              portName: output.portName
+              portName: output.portName,
+              portType: output.portType
             }
           ]
         }
@@ -35,7 +36,8 @@ const addConnection = (nodes, input, output, portTypes) => {
               []),
             {
               nodeId: input.nodeId,
-              portName: input.portName
+              portName: input.portName,
+              portType: input.portType
             }
           ]
         }
@@ -238,12 +240,12 @@ const nodesReducer = (
       // decision - inputs unlimited, outputs unlimited
       // flow     - inputs max unlimited, outputs max 1
 
-      const inputIsNotConnected = connectionMode !== 'root' || (
+      const inputIsNotConnected = (connectionMode !== 'root' || input.portName.indexOf('route') !== 0) || (
                                    nodes[input.nodeId].connections.inputs[input.portName] == null ||
                                    nodes[input.nodeId].connections.inputs[input.portName].length === 0
       );
 
-      const outputIsNotConnected = connectionMode !== 'flow' || (
+      const outputIsNotConnected = (connectionMode !== 'flow' || output.portName.indexOf('route') !== 0)  || (
                                    nodes[output.nodeId].connections.outputs[output.portName] == null ||
                                    nodes[output.nodeId].connections.outputs[output.portName].length === 0
       );

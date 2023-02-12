@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import styles from "./TextInput.css";
 import { RecalculateStageRectContext } from '../../context'
 
@@ -11,6 +11,7 @@ const TextInput = ({
   type
 }) => {
   const numberInput = React.useRef()
+  const textInput = React.useRef()
   const recalculateStageRect = React.useContext(RecalculateStageRectContext)
 
   const handleDragEnd = () => {
@@ -29,6 +30,17 @@ const TextInput = ({
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleDragEnd);
   };
+  useEffect(() => {
+    if (textInput.current) {
+      const elem = textInput.current
+      if (data) {
+        elem.style.height = 0;
+        elem.style.height = (elem.scrollHeight + 10) + "px";
+      } else {
+        elem.style.height = "auto";
+      }
+    }
+  }, [data])
 
   return (
     <div className={styles.wrapper} data-flume-component="text-input">
@@ -78,6 +90,7 @@ const TextInput = ({
           className={styles.input}
           value={data}
           onDragStart={e => e.stopPropagation()}
+          ref={textInput}
         />
       )}
     </div>

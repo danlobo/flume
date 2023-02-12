@@ -43,6 +43,7 @@ export let NodeEditor = (
     onChange,
     onCommentsChange,
     initialScale,
+    initialTranslate,
     spaceToPan = false,
     hideComments = false,
     disableComments = false,
@@ -81,7 +82,7 @@ export let NodeEditor = (
   ] = React.useState(true);
   const [stageState, dispatchStageState] = React.useReducer(stageReducer, {
     scale: typeof initialScale === "number" ? clamp(initialScale, 0.1, 7) : 1,
-    translate: { x: 0, y: 0 }
+    translate: { x: initialTranslate?initialTranslate.x : 0, y: initialTranslate? initialTranslate.y : 0 }
   });
 
   const recalculateConnections = React.useCallback(() => {
@@ -112,9 +113,18 @@ export let NodeEditor = (
     getComments: () => {
       return comments;
     },
+    getStageState: () => {
+      return stageState;
+    },
     setNodes: newNodes => {
       dispatchNodes({ type: "SET_NODES", nodes: newNodes });
       triggerRecalculation();
+    },
+    setComments: newComments => {
+      dispatchComments({ type: "SET_COMMENTS", comments: newComments });
+    },
+    setStageState: newStageState => {
+      dispatchStageState({ type: "SET_TRANSLATE_SCALE", scale: newStageState.scale, translate: newStageState.translate });
     }
   }));
 
