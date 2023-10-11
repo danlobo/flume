@@ -1,11 +1,11 @@
 {
   "name": "flume",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A node editor for React",
   "author": "chrisjpatty",
   "license": "MIT",
   "homepage": "https://flume.dev",
-  "repository": "chrisjpatty/flume",
+  "repository": "danlobo/flume",
   "main": "dist/index.js",
   "module": "dist/index.es.js",
   "jsnext:main": "dist/index.es.js",

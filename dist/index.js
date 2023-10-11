@@ -6333,7 +6333,8 @@ var Controls = {
     return {
       options: define(config.options, []),
       getOptions: define(config.getOptions, undefined),
-      placeholder: define(config.placeholder, undefined)
+      placeholder: define(config.placeholder, undefined),
+      isOptionEqualToValue: define(config.isOptionEqualToValue, undefined)
     };
   }),
   number: buildControlType({
@@ -6359,7 +6360,8 @@ var Controls = {
     return {
       options: define(config.options, []),
       getOptions: define(config.getOptions, undefined),
-      placeholder: define(config.placeholder, undefined)
+      placeholder: define(config.placeholder, undefined),
+      isOptionEqualToValue: define(config.isOptionEqualToValue, undefined)
     };
   }),
   custom: buildControlType({
